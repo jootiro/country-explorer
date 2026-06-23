@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Country Explorer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Top search bar (always visible) ── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="logo" href="#" id="logo-link">🌍 Country Explorer</a>
+      <form class="search-form" id="search-form" autocomplete="off">
+        <input
+          type="text"
+          id="search-input"
+          class="search-input"
+          placeholder="Search any country…"
+          spellcheck="false"
+        />
+        <button type="submit" class="search-btn" aria-label="Search">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+  </header>
+
+  <!-- ── Landing / home state ── -->
+  <main id="home-view" class="home-view active">
+    <div class="hero">
+      <h1 class="hero-title">Explore the World</h1>
+      <p class="hero-sub">Type any country above and press Enter to discover facts, landmarks, and live weather.</p>
+      <div class="hero-examples">
+        <span class="example-tag" data-country="Japan">Japan</span>
+        <span class="example-tag" data-country="Brazil">Brazil</span>
+        <span class="example-tag" data-country="Italy">Italy</span>
+        <span class="example-tag" data-country="Australia">Australia</span>
+        <span class="example-tag" data-country="Egypt">Egypt</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── Results state ── -->
+  <main id="results-view" class="results-view hidden">
+    <!-- Error banner -->
+    <div id="error-banner" class="error-banner hidden">
+      <span id="error-message"></span>
+    </div>
+
+    <div class="results-layout">
+      <!-- Main content -->
+      <section id="main-content" class="main-content">
+        <!-- Facts card injected here by JS -->
+      </section>
+
+      <!-- Weather sidebar -->
+      <aside id="weather-sidebar" class="weather-sidebar">
+        <div class="sidebar-inner">
+          <p class="sidebar-loading">Loading weather…</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- ── Loading overlay ── -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

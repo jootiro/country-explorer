@@ -1,0 +1,27 @@
+Country Explorer — Progress Log
+================================
+
+Search Bar Scaffold — completed.
+What: A fixed header with a logo and a rounded search bar that accepts any country name; pressing Enter triggers a search without reloading the page; a hero landing screen with example country tags is shown before any search.
+How: Implemented with pure HTML/CSS/JS; the header uses `position: fixed` with a backdrop blur, the form uses `e.preventDefault()` and logs the trimmed query to the console before delegating to `runSearch()`.
+Why: The scaffold is the prerequisite for every other feature — nothing can be built or tested without the search input and view-switching infrastructure in place.
+
+Country Facts Display — completed.
+What: After a valid country is searched, a card shows the country flag emoji, common name, official name, capital, population (formatted), area in km², official languages, currency name, and continent/region tag.
+How: Uses a two-step Wikidata API flow — `wbsearchentities` finds the entity ID (filtering for country-like descriptions), then a SPARQL query fetches structured facts (P36 capital, P1082 population, P2046 area, P37 languages, P38 currency, P30 continent, P297 ISO2 for flag emoji generation); flag emoji is derived client-side from the ISO 3166-1 alpha-2 code.
+Why: This is the core value of the app; REST Countries v3.1 was deprecated so Wikidata was used as a free, comprehensive, CORS-enabled alternative that supports all ~200 world countries.
+
+Weather Sidebar — completed.
+What: A sticky right-hand sidebar shows current temperature (°C), weather condition with icon, humidity (%), and wind speed (km/h) for the country's capital city; data updates on every new country search.
+How: Open-Meteo geocoding API (`geocoding-api.open-meteo.com`) resolves the capital city name to lat/lon coordinates, then the Open-Meteo forecast API fetches current weather; WMO weather codes are mapped to human-readable condition labels and emoji icons; both APIs are free with no key required.
+Why: The weather sidebar was the highest-value differentiating feature after country facts — it adds real-time, live data and makes the app feel dynamic rather than static.
+
+Tourist Destination Images — completed.
+What: Two images of famous landmarks or tourist attractions for the searched country appear below the facts, each with a caption showing the Wikipedia article title; images are filtered to exclude flags, maps, coats of arms, and emblems.
+How: Two parallel Wikipedia action API queries (`generator=search` with `prop=pageimages`) search for `{country} famous landmark tourist` and `{capital} landmark attraction`; the first result with a thumbnail image that doesn't match skip-patterns (flag, map, emblem, etc.) is selected.
+Why: Landmark images were the primary visual enhancement; implemented after the data pipeline was stable because images depend on knowing the country name and capital from earlier features.
+
+Modern UI & UX Polish — completed.
+What: Dark-mode design using a GitHub-inspired palette (`#0d1117` background, `#58a6ff` accent); gradient hero title; `fadeUp` animations on the facts card and sidebar; fixed search bar accessible from all screens; responsive grid layout with a 280px weather sidebar and fluid main content column.
+How: Pure CSS custom properties for the colour system; `@keyframes fadeUp` applied with `animation` shorthand; `position: fixed` on the header with `backdrop-filter: blur`; `display: grid` with `grid-template-columns: 1fr 280px` for the results layout; media query ready at 900px+.
+Why: Polish was done last as it doesn't block functionality but significantly affects the user experience; a modern aesthetic was chosen to make the app feel credible and enjoyable to use.
