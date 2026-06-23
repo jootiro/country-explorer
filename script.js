@@ -135,8 +135,16 @@ async function fetchCountryData(name) {
       OPTIONAL { ?item wdt:P36  ?capital. }
       OPTIONAL { ?item wdt:P1082 ?population. }
       OPTIONAL { ?item wdt:P2046 ?area. }
-      OPTIONAL { ?item wdt:P37  ?lang. }
-      OPTIONAL { ?item wdt:P38  ?curr. }
+      OPTIONAL {
+        ?item wdt:P37 ?lang.
+        ?lang rdfs:label ?langLabel.
+        FILTER(LANG(?langLabel) = "en")
+      }
+      OPTIONAL {
+        ?item wdt:P38 ?curr.
+        ?curr rdfs:label ?currLabel.
+        FILTER(LANG(?currLabel) = "en")
+      }
       OPTIONAL { ?item wdt:P30  ?continent. }
       OPTIONAL { ?item wdt:P297 ?iso2. }
       SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
@@ -178,10 +186,14 @@ function fmt(n) {
 }
 
 function renderFacts(c) {
+  const flagEl = c.iso2
+    ? `<img class="country-flag-img" src="https://flagcdn.com/w160/${c.iso2.toLowerCase()}.png" alt="${c.name} flag">`
+    : '';
+
   mainContent.innerHTML = `
     <div class="facts-card">
       <div class="facts-hero">
-        <div class="country-flag">${c.flag}</div>
+        ${flagEl}
         <div class="country-name-block">
           <h2>${c.name}</h2>
           <p style="color:var(--text-muted);font-size:0.85rem;margin-top:4px;">${c.official}</p>
@@ -310,66 +322,82 @@ async function fetchAndRenderWeather(country) {
    FEATURE 4 — Tourist Images (Wikipedia)
 ════════════════════════════════════════ */
 
-async function fetchWikiImage(searchTerm) {
-  const res = await fetch(
-    `https://en.wikipedia.org/w/api.php?action=query&generator=search` +
-    `&gsrsearch=${encodeURIComponent(searchTerm)}&gsrlimit=8` +
-    `&prop=pageimages&format=json&pithumbsize=800&origin=*`
-  );
-  const data = await res.json();
-  const pages = Object.values(data?.query?.pages ?? {});
+const SKIP = [/flag/i, /coat.of.arms/i, /emblem/i, /seal/i, /blank/i, /map/i, /locator/i, /logo/i, /icon/i];
 
-  // skip generic/flag images; prefer photos
-  const skipPatterns = [/flag/i, /coat.of.arms/i, /emblem/i, /seal/i, /blank/i, /map/i, /locator/i];
+async function fetchWikiCandidates(searchTerm) {
+  try {
+    const res  = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&generator=search` +
+      `&gsrsearch=${encodeURIComponent(searchTerm)}&gsrlimit=12` +
+      `&prop=pageimages&format=json&pithumbsize=800&origin=*`
+    );
+    const data = await res.json();
+    const pages = Object.values(data?.query?.pages ?? {});
 
-  for (const page of pages) {
-    const src = page.thumbnail?.source || '';
-    if (src && !skipPatterns.some(p => p.test(src)) && !skipPatterns.some(p => p.test(page.title))) {
-      return { url: src, title: page.title };
-    }
+    return pages
+      .filter(p => {
+        const src = p.thumbnail?.source || '';
+        return src && !SKIP.some(r => r.test(src)) && !SKIP.some(r => r.test(p.title));
+      })
+      .map(p => ({ url: p.thumbnail.source, title: p.title }));
+  } catch {
+    return [];
   }
-  // fallback: any page with a thumbnail
-  const fallback = pages.find(p => p.thumbnail?.source);
-  return fallback ? { url: fallback.thumbnail.source, title: fallback.title } : null;
 }
 
 async function fetchAndRenderImages(country) {
   const name    = country.name;
   const capital = country.capital !== 'N/A' ? country.capital : name;
 
-  const queries = [
-    `${name} famous landmark tourist`,
-    `${capital} landmark attraction`,
-  ];
+  // Fetch both candidate lists in parallel
+  const [cands1, cands2] = await Promise.all([
+    fetchWikiCandidates(`${name} famous landmark tourist`),
+    fetchWikiCandidates(`${capital} tourist attraction site`),
+  ]);
 
-  const [img1, img2] = await Promise.all(queries.map(q => fetchWikiImage(q).catch(() => null)));
+  // Pick 2 unique images: first valid from cands1, then first unseen URL from cands2
+  const chosen = [];
+  const usedUrls = new Set();
+
+  for (const c of cands1) {
+    if (!usedUrls.has(c.url)) { chosen.push(c); usedUrls.add(c.url); break; }
+  }
+  for (const c of cands2) {
+    if (!usedUrls.has(c.url)) { chosen.push(c); usedUrls.add(c.url); break; }
+  }
+
+  // If still only 1 (or 0), pull extras from either pool
+  if (chosen.length < 2) {
+    for (const c of [...cands1, ...cands2]) {
+      if (!usedUrls.has(c.url)) { chosen.push(c); usedUrls.add(c.url); }
+      if (chosen.length === 2) break;
+    }
+  }
 
   const grid = document.getElementById('images-grid');
   if (!grid) return;
   grid.innerHTML = '';
 
-  [img1, img2].forEach((result, i) => {
-    const wrap = document.createElement('div');
+  for (let i = 0; i < 2; i++) {
+    const result = chosen[i] ?? null;
+    const wrap   = document.createElement('div');
     wrap.className = 'landmark-img-wrap';
 
-    if (result?.url) {
-      const img = document.createElement('img');
-      img.src  = result.url;
-      img.alt  = result.title;
-      img.loading = 'lazy';
-      img.onerror = () => { wrap.innerHTML = '<div class="img-placeholder">Image unavailable</div>'; };
-
-      const cap = document.createElement('div');
+    if (result) {
+      const img       = document.createElement('img');
+      img.src         = result.url;
+      img.alt         = result.title;
+      img.loading     = 'lazy';
+      img.onerror     = () => { wrap.innerHTML = '<div class="img-placeholder">Image unavailable</div>'; };
+      const cap       = document.createElement('div');
       cap.className   = 'landmark-caption';
       cap.textContent = result.title;
-
       wrap.appendChild(img);
       wrap.appendChild(cap);
     } else {
-      const label = i === 0 ? `${name} Landmark` : capital;
-      wrap.innerHTML = `<div class="img-placeholder">${label} — image unavailable</div>`;
+      wrap.innerHTML = `<div class="img-placeholder">${i === 0 ? name : capital} — image unavailable</div>`;
     }
 
     grid.appendChild(wrap);
-  });
+  }
 }

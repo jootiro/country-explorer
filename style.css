@@ -221,6 +221,16 @@ main { padding-top: var(--header-h); }
   border-bottom: 1px solid var(--border);
 }
 
+.country-flag-img {
+  width: 110px;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+  flex-shrink: 0;
+  display: block;
+}
+
+/* legacy emoji fallback — kept for safety */
 .country-flag {
   font-size: 4rem;
   line-height: 1;
